@@ -1,34 +1,27 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, it, expect, test } from 'bun:test'
 import { Elysia, t } from '../../src'
 import { newWebsocket, wsOpen, wsMessage, wsClosed } from './utils'
 
-describe('WebSocket message', () => {
-	it('should send & receive', async () => {
-		const app = new Elysia()
-			.ws('/ws', {
-				message(ws, message) {
-					ws.send(message)
-				}
-			})
-			.listen(0)
-
-		const ws = newWebsocket(app.server!)
-
-		await wsOpen(ws)
-
-		const message = wsMessage(ws)
-
-		ws.send('Hello!')
-
-		const { type, data } = await message
-
-		expect(type).toBe('message')
-		expect(data).toBe('Hello!')
-
-		await wsClosed(ws)
-		app.stop()
+test.each(['Hello!', ' ', '0'])('should send & receive string "%s"', async (m: string) => {
+	const app = new Elysia()
+	.ws('/ws', {
+		message(ws, message) {
+			ws.send(message)
+		}
 	})
+	.listen(0)
+	const ws = newWebsocket(app.server!)
+	await wsOpen(ws)
+	const message = wsMessage(ws)
+	ws.send(m)
+	const { type, data } = await message
+	expect(type).toBe('message')
+	expect(data).toBe(m)
+	await wsClosed(ws)
+	app.stop()
+})
 
+describe('WebSocket message', () => {
 	it('should respond with remoteAddress', async () => {
 		const app = new Elysia()
 			.ws('/ws', {
